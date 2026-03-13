@@ -3,138 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Профи-Калькулятор ТТК</title>
+    <title>Точный Калькулятор Себестоимости</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f7f6; padding: 10px; line-height: 1.4; }
-        .container { max-width: 600px; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin: auto; }
-        h2, h3 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        /* Основные стили */
+        body { font-family: sans-serif; background-color: #f0f2f5; padding: 10px; margin: 0; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); box-sizing: border-box; }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 1.2rem; }
         
-        .card { background: #fff; border: 1px solid #ddd; padding: 10px; border-radius: 8px; margin-bottom: 15px; }
-        .row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
-        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 80px; }
+        /* Стили для строк ввода */
+        .row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        input, select { flex: 1; min-width: 120px; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; box-sizing: border-box; }
         
-        button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .btn-add { background: #3498db; color: white; width: 100%; margin-top: 5px; }
-        .btn-calc { background: #27ae60; color: white; width: 100%; font-size: 1.1em; margin-top: 20px; }
+        /* Кнопки */
+        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-add { background: #3498db; color: white; width: 100%; margin-bottom: 10px; }
+        .btn-calc { background: #27ae60; color: white; width: 100%; font-size: 18px; margin-top: 10px; }
+        .btn-del { background: #e74c3c; color: white; padding: 10px 15px; min-width: 44px; }
         
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
-        th { background: #f8f9fa; }
-        
-        .result-val { font-weight: bold; color: #e67e22; }
+        /* Результаты */
+        #results { margin-top: 20px; padding: 15px; background: #e8f5e9; border: 2px solid #2ecc71; border-radius: 10px; }
+        .res-line { display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; }
+
+        /* Адаптивность: на очень узких экранах кнопки удаления уходят вправо */
+        @media (max-width: 400px) {
+            input, select { min-width: 100%; }
+            .btn-del { width: 100%; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>1. Цены на ингредиенты</h2>
-    <div id="prices-list" class="card">
-        <div class="row">
-            <input type="text" placeholder="Продукт (н-р, Мясо)" class="ing-name">
-            <input type="number" placeholder="Цена за кг" class="ing-price">
+    <h2>1. Цены (руб/кг)</h2>
+    <div id="price-inputs">
+        <div class="row price-row">
+            <input type="text" placeholder="Продукт (н-р, Мясо)" class="p-name" oninput="updateOptions()">
+            <input type="number" placeholder="Цена" class="p-val">
         </div>
     </div>
-    <button class="btn-add" onclick="addPriceRow()">+ Добавить ингредиент</button>
+    <button class="btn-add" onclick="addPriceField()">+ Добавить продукт</button>
 
-    <h2>2. Калькуляционные карты (ТТК)</h2>
-    <div id="recipes-container">
-        <div class="card recipe-card">
-            <input type="text" placeholder="Название изделия (н-р, Чебурек)" class="recipe-title" style="font-weight:bold; margin-bottom:10px; width:95%;">
-            <div class="ingredients-in-recipe">
-                <div class="row">
-                    <input type="text" placeholder="Ингредиент" class="res-ing-name">
-                    <input type="number" placeholder="Грамм в 1 шт" class="res-ing-weight">
-                </div>
-            </div>
-            <button class="btn-add" onclick="addIngredientToRecipe(this)" style="background:#95a5a6;">+ Добавить продукт в рецепт</button>
+    <h2>2. Рецепт (грамм в 1 шт)</h2>
+    <div id="recipe-inputs">
+        <div class="row recipe-row">
+            <select class="r-select"></select>
+            <input type="number" placeholder="Грамм" class="r-weight">
         </div>
     </div>
-    <button class="btn-add" onclick="addRecipeCard()" style="background:#8e44ad;">+ Создать новое изделие</button>
+    <button class="btn-add" onclick="addRecipeField()">+ Добавить в рецепт</button>
 
-    <button class="btn-calc" onclick="calculate()">РАССЧИТАТЬ СЕБЕСТОИМОСТЬ</button>
+    <button class="btn-calc" onclick="finalCalculate()">ПОСЧИТАТЬ ИТОГО</button>
 
-    <div id="results" class="card" style="display:none; margin-top:20px; border-color:#27ae60;">
-        <h3>Итоговая себестоимость:</h3>
-        <table id="res-table">
-            <thead>
-                <tr><th>Изделие</th><th>Итог (руб/шт)</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+    <div id="results" style="display:none;">
+        <div class="res-line">
+            <span>Себестоимость:</span>
+            <span id="total-res">0</span>
+        </div>
     </div>
 </div>
 
 <script>
-    // Добавить строку в список цен
-    function addPriceRow() {
+    // Тот же надежный движок расчета, что и раньше
+    function addPriceField() {
         const div = document.createElement('div');
-        div.className = 'row';
-        div.innerHTML = '<input type="text" placeholder="Продукт" class="ing-name"> <input type="number" placeholder="Цена за кг" class="ing-price">';
-        document.getElementById('prices-list').appendChild(div);
-    }
-
-    // Добавить строку ингредиента в конкретный рецепт
-    function addIngredientToRecipe(btn) {
-        const container = btn.previousElementSibling;
-        const div = document.createElement('div');
-        div.className = 'row';
-        div.innerHTML = '<input type="text" placeholder="Ингредиент" class="res-ing-name"> <input type="number" placeholder="Грамм в 1 шт" class="res-ing-weight">';
-        container.appendChild(div);
-    }
-
-    // Добавить новую карточку изделия
-    function addRecipeCard() {
-        const container = document.getElementById('recipes-container');
-        const div = document.createElement('div');
-        div.className = 'card recipe-card';
+        div.className = 'row price-row';
         div.innerHTML = `
-            <input type="text" placeholder="Название изделия" class="recipe-title" style="font-weight:bold; margin-bottom:10px; width:95%;">
-            <div class="ingredients-in-recipe">
-                <div class="row">
-                    <input type="text" placeholder="Ингредиент" class="res-ing-name">
-                    <input type="number" placeholder="Грамм в 1 шт" class="res-ing-weight">
-                </div>
-            </div>
-            <button class="btn-add" onclick="addIngredientToRecipe(this)" style="background:#95a5a6;">+ Добавить продукт в рецепт</button>
-        `;
-        container.appendChild(div);
+            <input type="text" placeholder="Продукт" class="p-name" oninput="updateOptions()">
+            <input type="number" placeholder="Цена" class="p-val">
+            <button class="btn-del" onclick="this.parentElement.remove();updateOptions()">×</button>`;
+        document.getElementById('price-inputs').appendChild(div);
     }
 
-    // Главная функция расчета
-    function calculate() {
-        // 1. Собираем текущие цены в словарь
-        const priceMap = {};
-        document.querySelectorAll('.prices-list .row, #prices-list .row').forEach(row => {
-            const name = row.querySelector('.ing-name').value.toLowerCase().trim();
-            const price = parseFloat(row.querySelector('.ing-price').value);
-            if (name && price) priceMap[name] = price;
+    function addRecipeField() {
+        const div = document.createElement('div');
+        div.className = 'row recipe-row';
+        div.innerHTML = `
+            <select class="r-select"></select>
+            <input type="number" placeholder="Грамм" class="r-weight">
+            <button class="btn-del" onclick="this.parentElement.remove()">×</button>`;
+        document.getElementById('recipe-inputs').appendChild(div);
+        updateOptions();
+    }
+
+    function updateOptions() {
+        const names = Array.from(document.querySelectorAll('.p-name')).map(i => i.value).filter(v => v !== "");
+        document.querySelectorAll('.r-select').forEach(sel => {
+            const current = sel.value;
+            sel.innerHTML = '<option value="">Выбери...</option>' + 
+                            names.map(n => `<option value="${n}">${n}</option>`).join('');
+            sel.value = current;
+        });
+    }
+
+    function finalCalculate() {
+        const prices = {};
+        document.querySelectorAll('.price-row').forEach(row => {
+            const n = row.querySelector('.p-name').value;
+            const v = parseFloat(row.querySelector('.p-val').value);
+            if (n && !isNaN(v)) prices[n] = v;
         });
 
-        // 2. Считаем каждое изделие
-        const resultsBody = document.querySelector('#res-table tbody');
-        resultsBody.innerHTML = '';
-        
-        document.querySelectorAll('.recipe-card').forEach(card => {
-            const title = card.querySelector('.recipe-title').value || "Без названия";
-            let totalCost = 0;
-
-            card.querySelectorAll('.ingredients-in-recipe .row').forEach(ingRow => {
-                const ingName = ingRow.querySelector('.res-ing-name').value.toLowerCase().trim();
-                const weightGrams = parseFloat(ingRow.querySelector('.res-ing-weight').value);
-                
-                if (ingName && weightGrams && priceMap[ingName]) {
-                    // Переводим граммы в кг ( / 1000 ) и умножаем на цену за кг
-                    totalCost += (weightGrams / 1000) * priceMap[ingName];
-                }
-            });
-
-            if (totalCost > 0) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${title}</td><td class="result-val">${totalCost.toFixed(2)} руб.</td>`;
-                resultsBody.appendChild(tr);
+        let total = 0;
+        document.querySelectorAll('.recipe-row').forEach(row => {
+            const name = row.querySelector('.r-select').value;
+            const weight = parseFloat(row.querySelector('.r-weight').value);
+            
+            if (name && !isNaN(weight) && prices[name]) {
+                total += (prices[name] * weight) / 1000;
             }
         });
 
+        document.getElementById('total-res').innerText = total.toFixed(2) + " руб.";
         document.getElementById('results').style.display = 'block';
     }
 </script>
